@@ -3,6 +3,8 @@ import { StatsCard } from "@/components/stats-card";
 import { WalletTable } from "@/components/wallet-table/wallet-table";
 // import { scamWallets } from "@/lib/data/mock-wallets";
 import { sortedWalletData } from "@/lib/data/mock-wallets";
+import { ReportButton } from "@/components/report-button";
+
 
 export default function page() {
   return (
@@ -16,7 +18,10 @@ export default function page() {
               Top 10 identified malicious wallet addresses
             </p>
           </div>
-          <StatsCard />
+          <div className="flex items-center gap-4">
+            <StatsCard />
+            <ReportButton />
+          </div>
         </div>
 
         <Card className="bg-black/40 border-violet-900">
