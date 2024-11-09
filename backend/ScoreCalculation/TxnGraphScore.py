@@ -3,15 +3,7 @@ from dotenv import load_dotenv
 import pandas as pd
 import time
 import requests
-
-load_dotenv()
-
-API_KEY = os.getenv('API_KEY')
-print(API_KEY)
-
-
-blacklist = pd.read_csv('blacklist_eth.csv')
-print(blacklist.head())
+import fetchBlacklist
 
 class RateLimiter:
     def __init__(self, max_calls_per_second):
@@ -75,10 +67,8 @@ def get_eth_wallet_transactions(input_eth_wallet,txn_accs,end):
         end = transactions[-1]['blockNumber']
         return txn_accs, end
     else:
-        print("Error:", data['message'])
         return None, 99999999
   except requests.exceptions.RequestException as e:
-    print("Fetch Error:", e)
     return None, 99999999
 
 def helper1(eth_wallet):
@@ -92,11 +82,15 @@ def helper1(eth_wallet):
       break
   return txn_accs
 
-def calculate_score(input_eth_wallet):
+def txnGraphScore(input_eth_wallet):
+  load_dotenv()
+  API_KEY = os.getenv('API_KEY')
+  blacklist = fetchBlacklist.fetchBlacklist()
+
   rate_limiter = RateLimiter(max_calls_per_second=5)
   input_eth_wallet = input_eth_wallet.lower()
 
-  if input_eth_wallet in blacklist['Address'].values:
+  if input_eth_wallet in blacklist['address'].values:
       return 1
   
   second_lvl_accs = rate_limiter.rate_limited_call(helper1,input_eth_wallet)
@@ -115,7 +109,7 @@ def calculate_score(input_eth_wallet):
           continue
 
       for acc3 in third_lvl_accs.keys():
-          if acc3 in blacklist['Address'].values:
+          if acc3 in blacklist['address'].values:
               blacklist_txn += third_lvl_accs[acc3]
           total_txn += third_lvl_accs[acc3]
 
@@ -130,7 +124,7 @@ def calculate_score(input_eth_wallet):
 
   # Calculate weighted blacklist score across all second-level accounts
   for acc in second_lvl_scores:
-      if acc in blacklist['Address'].values:
+      if acc in blacklist['address'].values:
         overall_blacklist_txn += second_lvl_accs[acc]
         overall_total_txn += second_lvl_accs[acc]
       else:
@@ -144,5 +138,3 @@ def calculate_score(input_eth_wallet):
 
   return score
 
-score = calculate_score('0x4D06f42C6dEbc232d2d2e90286Cb5D9A1ca2f5f8')
-print(score)
