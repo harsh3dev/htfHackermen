@@ -10,7 +10,7 @@ import pandas as pd
 load_dotenv()
 
 app = FastAPI()
-model_path = 'model/xgb_4_model.pickle' 
+model_path = 'model/xgb_5_model.pickle' 
 
 # Load the model
 if os.path.exists(model_path):

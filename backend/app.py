@@ -5,6 +5,8 @@ import httpx
 from dotenv import load_dotenv
 import os
 from model.anamoly import process
+from ScoreCalculation.TxnGraphScore import txnGraphScore
+from ScoreCalculation.accountAge import ageTxnScore
 
 load_dotenv()
 
@@ -79,11 +81,25 @@ async def process_eth_address(data: EthereumRequest):
         score = 0
         
         score += await Scammer(eth_address)  
-        score += await KYCverified(eth_address)
+        if score == 1:
+            return {'score':0}
+        graph_score = txnGraphScore(eth_address)
+        graph_score *= 100
+        kyc_score = await KYCverified(eth_address)
+        kyc_score = 1-kyc_score
+        kyc_score*=100
         val_store = await process(eth_address)
-        score += val_store['prediction'][0]
-       
-        return {'score': score}
+        ml_score = val_store['prediction'][0]
+        ml_score = 1-ml_score
+        print(ml_score)
+        ml_score*=100
+        age_txn_score = ageTxnScore(eth_address)
+        age_txn_score = 1 - age_txn_score
+        age_txn_score*=100
+
+        final_score = (graph_score+kyc_score+ml_score+age_txn_score)/4
+        
+        return {'score': 100-final_score}
     except HTTPException as e:
         raise e
     except Exception as e:
