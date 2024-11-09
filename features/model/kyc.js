@@ -5,4 +5,4 @@ const kycSchema = new mongoose.Schema({
   });
 
 
-  module.exports = mongoose.model("kyc", kycSchema);
+  module.exports = mongoose.model("KYCAPPROVED", kycSchema);
