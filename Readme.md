@@ -64,7 +64,7 @@ The model processes wallet and transaction data to calculate a **safety score** 
    ```bash
    pip install -r backend/requirements.txt
    ```
-   - Start Server
+   - **Start Server**
    ```bash
    uvicorn backend.main:app --reload
    ```
