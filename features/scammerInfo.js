@@ -6,20 +6,20 @@ const db = require("./utils/db");
 require('dotenv').config();
 db.connect();
 
-const ETHERSCAN_API_KEY = "NG66ZWU15AD5UMD6UM4UIZXQS6S4G8AP5C";
-const WALLET_ADDRESS = "0x40949225c4a1745a9946f6aaf763241c082cb9ac"; // Example address, replace accordingly
+
+
 
 // Function to fetch transaction stats for an address
 export async function fetchTransactionStats(address) {
   async function getWalletBalance() {
-    const url = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${ETHERSCAN_API_KEY}`;
+    const url = `https://api.etherscan.io/api?module=account&action=balance&address=${address}&tag=latest&apikey=${process.env.ETHERSCAN_API_KEY}`;
     const response = await axios.get(url);
     const balanceInWei = response.data.result;
     return parseFloat(balanceInWei) / 1e18; // Convert to Ether
   }
 
   async function getTransactions() {
-    const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=asc&apikey=${ETHERSCAN_API_KEY}`;
+    const url = `https://api.etherscan.io/api?module=account&action=txlist&address=${address}&startblock=0&endblock=99999999&sort=asc&apikey=${process.env.ETHERSCAN_API_KEY}`;
     const response = await axios.get(url);
     return response.data.result; 
   }
