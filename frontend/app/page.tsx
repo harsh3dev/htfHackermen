@@ -5,7 +5,7 @@ import Pricing from "@/components/Pricing";
 
 export default function Home() {
   return (
-    <div className=" w-full h-screen grid place-items-center bg-gradient-to-br from-[#0a0b1a] to-[#1a237e] ">
+    <div className=" w-full h-screen grid place-items-center ">
       <Hero />
       <Features />
       <Pricing />
