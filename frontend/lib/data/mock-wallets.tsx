@@ -55,3 +55,34 @@ export interface ScamWallet {
       lastActive: "2024-03-20",
     },
   ];
+
+
+import fs from 'fs';
+
+export type WalletData = {
+    address: string;
+    timeDiffFirstLastMins: number;
+    avgValReceived: number;
+    avgMinBetweenReceivedTnx: number;
+    totalEtherSent: number;
+    totalEtherReceived: number;
+    receivedTnx: number;
+    sentTnx: number;
+    avgMinBetweenSentTnx: number;
+    totalEtherBalance: number;
+    avgValSent: number;
+};
+
+function sortDataByEtherBalance(filePath: string): WalletData[] {
+    // Read and parse the JSON file
+    const data: WalletData[] = JSON.parse(fs.readFileSync(filePath, 'utf-8'));
+
+    // Sort data by totalEtherBalance in decreasing order
+    const sortedData = data.sort((a, b) => b.totalEtherBalance - a.totalEtherBalance);
+
+    return sortedData;
+}
+
+// Example usage
+export const sortedWalletData = sortDataByEtherBalance('./lib/data/blacklist.json');
+// console.log(sortedWalletData);

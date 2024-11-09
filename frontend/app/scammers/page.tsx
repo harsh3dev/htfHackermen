@@ -1,7 +1,8 @@
 import { Card } from "@/components/ui/card";
 import { StatsCard } from "@/components/stats-card";
 import { WalletTable } from "@/components/wallet-table/wallet-table";
-import { scamWallets } from "@/lib/data/mock-wallets";
+// import { scamWallets } from "@/lib/data/mock-wallets";
+import { sortedWalletData } from "@/lib/data/mock-wallets";
 
 export default function page() {
   return (
@@ -19,7 +20,7 @@ export default function page() {
         </div>
 
         <Card className="bg-black/40 border-violet-900">
-          <WalletTable wallets={scamWallets} />
+          <WalletTable wallets={sortedWalletData} />
         </Card>
 
         <div className="mt-6 text-center text-sm text-gray-500">

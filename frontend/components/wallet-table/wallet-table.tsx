@@ -9,10 +9,10 @@ import {
   TableRow,
 } from "@/components/ui/table";
 import { columns } from "./columns";
-import { type ScamWallet } from "@/lib/data/mock-wallets";
+import { WalletData } from "@/lib/data/mock-wallets";
 
 interface WalletTableProps {
-  wallets: ScamWallet[];
+  wallets: WalletData[];
 }
 
 export function WalletTable({ wallets }: WalletTableProps) {
@@ -30,7 +30,7 @@ export function WalletTable({ wallets }: WalletTableProps) {
       <TableBody>
         {wallets.map((wallet) => (
           <TableRow
-            key={wallet.id}
+            key={wallet.address}
             className="border-violet-800/50 hover:bg-violet-900/20 transition-colors"
           >
             {columns.map((column, index) => (
