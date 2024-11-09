@@ -2,13 +2,13 @@
 
 ---
 
-## Project Overview
+## 🚀 Project Overview
 
 With the rise of cryptocurrency transactions, protecting users from fraudulent activities has become increasingly critical. **CryptoSecure** helps achieve this by assigning each wallet a **safety score**, a metric that reflects the likelihood of a wallet being involved in suspicious behavior. This score enables users and platforms to assess the risk associated with specific wallets before engaging in transactions.
 
 ---
 
-## Working Methodology
+## ⚙️ Working Methodology
 
 CryptoSecure uses a combination of **Supervised** and **Unsupervised Machine Learning** approaches:
 
