@@ -5,13 +5,13 @@ import os
 from dotenv import load_dotenv
 import httpx
 import numpy as np
-from model.feature_engineer import FeatureEngineer
+
 
 load_dotenv()
 
 app = FastAPI()
 
-model_path = 'model/address.pickle'
+model_path = 'model/full_pipeline_model2.pickle'
 
 if os.path.exists(model_path):
     with open(model_path, 'rb') as file:
