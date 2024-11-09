@@ -2,46 +2,28 @@ from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
 import pickle
 import os
+import numpy as np
 from dotenv import load_dotenv
 import httpx
-import numpy as np
-from sklearn.base import BaseEstimator, TransformerMixin
+import pandas as pd
 
 load_dotenv()
 
 app = FastAPI()
-model_path = 'address.pickle'
+model_path = 'model/xgb_4_model.pickle' 
 
-# Step 1: Custom transformer for renaming columns and feature creation
-class FeatureEngineer(BaseEstimator, TransformerMixin):
-    def fit(self, X, y=None):
-        return self
-
-    def transform(self, X):
-        X = X.drop(columns=['address'], errors='ignore')
-        X['totalTransactions'] = X['sentTransactions'] + X['receivedTransactions']
-        X['ratioRecSent'] = X['receivedTransactions'] / X['sentTransactions'].replace(0, 1)
-        X['ratioSentTotal'] = X['sentTransactions'] / X['totalTransactions'].replace(0, 1)
-        X['ratioRecTotal'] = X['receivedTransactions'] / X['totalTransactions'].replace(0, 1)
-        expected_columns = [
-            'avgTimeBetweenSentTnx', 'avgTimeBetweenRecTnx', 'lifetime',
-            'sentTransactions', 'receivedTransactions', 'avgValSent',
-            'avgValReceived', 'totalTransactions', 'totalEtherSent',
-            'totalEtherReceived', 'totalEtherBalance', 'ratioRecSent',
-            'ratioSentTotal', 'ratioRecTotal'
-        ]
-        X = X[expected_columns]
-        return X
-
+# Load the model
 if os.path.exists(model_path):
     with open(model_path, 'rb') as file:
         model = pickle.load(file)
 else:
     raise HTTPException(status_code=500, detail="Model file not found")
 
+# Pydantic model for request data
 class EthereumRequest(BaseModel):
     address: str
 
+# Helper functions to get data from API
 async def get_wallet_balance(address: str) -> float:
     url = f'https://api.etherscan.io/api?module=account&action=balance&address={address}&tag=latest&apikey={os.getenv("ETHERSCAN_API_KEY")}'
     async with httpx.AsyncClient() as client:
@@ -61,6 +43,7 @@ async def get_transactions(address: str) -> list:
         else:
             raise HTTPException(status_code=response.status_code, detail="Error fetching transactions")
 
+# Fetch and engineer features
 async def fetch_transaction_stats(address: str) -> dict:
     stats = {
         "timeDiffFirstLastMins": 0,
@@ -75,50 +58,72 @@ async def fetch_transaction_stats(address: str) -> dict:
         "avgValSent": 0,
     }
 
+    # Populate stats with fetched transaction data
     stats["totalEtherBalance"] = await get_wallet_balance(address)
     transactions = await get_transactions(address)
     received_txns = [tx for tx in transactions if tx["to"].lower() == address.lower()]
     sent_txns = [tx for tx in transactions if tx["from"].lower() == address.lower()]
 
+    # Feature engineering
     stats["receivedTnx"] = len(received_txns)
     stats["sentTnx"] = len(sent_txns)
     stats["totalEtherSent"] = sum(float(tx["value"]) / 1e18 for tx in sent_txns)
     stats["totalEtherReceived"] = sum(float(tx["value"]) / 1e18 for tx in received_txns)
-
+    
     if len(transactions) > 1:
         first_tx_time = int(transactions[0]["timeStamp"])
         last_tx_time = int(transactions[-1]["timeStamp"])
         stats["timeDiffFirstLastMins"] = (last_tx_time - first_tx_time) / 60
-
+    
     if stats["receivedTnx"] > 0:
         stats["avgValReceived"] = stats["totalEtherReceived"] / stats["receivedTnx"]
-
+    
     if stats["sentTnx"] > 0:
         stats["avgValSent"] = stats["totalEtherSent"] / stats["sentTnx"]
-
+    
     if stats["receivedTnx"] > 1:
         received_times = [int(tx["timeStamp"]) for tx in received_txns]
         received_time_diffs = [(received_times[i] - received_times[i - 1]) / 60 for i in range(1, len(received_times))]
-        stats["avgMinBetweenReceivedTnx"] = sum(received_time_diffs) / len(received_time_diffs)
+        stats["avgMinBetweenReceivedTnx"] = float(sum(received_time_diffs) / len(received_time_diffs)) if len(received_time_diffs) > 0 else 0
 
+
+    
     if stats["sentTnx"] > 1:
         sent_times = [int(tx["timeStamp"]) for tx in sent_txns]
         sent_time_diffs = [(sent_times[i] - sent_times[i - 1]) / 60 for i in range(1, len(sent_times))]
-        stats["avgMinBetweenSentTnx"] = sum(sent_time_diffs) / len(sent_time_diffs)
+        stats["avgMinBetweenSentTnx"] = float(sum(sent_time_diffs) / len(sent_time_diffs)) if len(sent_time_diffs) > 0 else 0
+ 
+    stats["totalTransactions"] = stats["sentTnx"] + stats["receivedTnx"]
+    stats["ratioRecSent"] = stats["receivedTnx"] / stats["sentTnx"] if stats["sentTnx"] > 0 else 0
+    stats["ratioSentTotal"] = stats["sentTnx"] / stats["totalTransactions"] if stats["totalTransactions"] > 0 else 0
+    stats["ratioRecTotal"] = stats["receivedTnx"] / stats["totalTransactions"] if stats["totalTransactions"] > 0 else 0
 
     return stats
 
-async def predict(address: str) -> dict:
-    features = await fetch_transaction_stats(address)
-    feature_values = np.array(list(features.values())).reshape(1, -1)
-    prediction = model.predict(feature_values)
-    return {"prediction": prediction[0]}
 
-async def process(eth_request: EthereumRequest):
+async def predict(eth_request: EthereumRequest):
+    features = await fetch_transaction_stats(eth_request.address)
+    
+    # Arrange features in expected order for the model
+    feature_order = [
+        'avgMinBetweenSentTnx', 'avgMinBetweenReceivedTnx', 'timeDiffFirstLastMins',
+        'sentTnx', 'receivedTnx', 'avgValSent', 'avgValReceived', 'totalTransactions',
+        'totalEtherSent', 'totalEtherReceived', 'totalEtherBalance', 'ratioRecSent',
+        'ratioSentTotal', 'ratioRecTotal'
+    ]
+    feature_values = np.array([features[key] for key in feature_order]).reshape(1, -1)
+    
+    # Perform prediction
     try:
-        result = await predict(eth_request.address)
-        return result
-    except HTTPException as e:
-        raise e
+        prediction = model.predict(feature_values)
+        return {"prediction": prediction[0]}
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Unexpected error in processing: {str(e)}")
+        raise HTTPException(status_code=500, detail=f"Unexpected error in prediction: {str(e)}")
+
+async def process(eth_address):
+    features = await fetch_transaction_stats(eth_address)
+    feature_values = list(features.values())
+    feature_df = pd.DataFrame([feature_values], columns=features.keys())
+    transformed_features = feature_df.values
+    prediction = model.predict(transformed_features)
+    return {"prediction": prediction.tolist()}
