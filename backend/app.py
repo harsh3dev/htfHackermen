@@ -80,8 +80,8 @@ async def process_eth_address(data: EthereumRequest):
         
         score += await Scammer(eth_address)  
         score += await KYCverified(eth_address)
-        score += await process(eth_address)
-       
+        score2 = await process(eth_address)
+        print(f"score2",{score2})
         return {'score': score}
     except HTTPException as e:
         raise e

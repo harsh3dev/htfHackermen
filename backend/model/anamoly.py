@@ -1,26 +1,29 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import joblib
+import pickle
 import os
 from dotenv import load_dotenv
 import httpx
 import numpy as np
 
-
 load_dotenv()
 
 app = FastAPI()
 
-model_path = 'model/full_pipeline_model2.pickle'
+model_path = 'model/xgb_4_model.pickle'
 
+# Load the pre-trained model directly
 if os.path.exists(model_path):
     with open(model_path, 'rb') as file:
-        model = joblib.load(file)
+        model = pickle.load(file)
 else:
     raise HTTPException(status_code=500, detail="Model file not found")
 
 class EthereumRequest(BaseModel):
     address: str
+
+class PredictionResponse(BaseModel):
+    prediction: float
 
 async def get_wallet_balance(address: str) -> float:
     url = f'https://api.etherscan.io/api?module=account&action=balance&address={address}&tag=latest&apikey={os.getenv("ETHERSCAN_API_KEY")}'
@@ -89,16 +92,42 @@ async def fetch_transaction_stats(address: str) -> dict:
     return stats
 
 async def predict(address: str) -> dict:
+    # Fetch stats and engineer features
     features = await fetch_transaction_stats(address)
-    feature_values = np.array(list(features.values())).reshape(1, -1)
-    prediction = model.predict(feature_values)
-    return {"prediction": prediction[0]}
+    print(f"features ",features)
+    features['totalTransactions'] = features['sentTnx'] + features['receivedTnx']
+    features['ratioRecSent'] = features['receivedTnx'] / (features['sentTnx'] if features['sentTnx'] != 0 else 1)
+    features['ratioSentTotal'] = features['sentTnx'] / (features['totalTransactions'] if features['totalTransactions'] != 0 else 1)
+    features['ratioRecTotal'] = features['receivedTnx'] / (features['totalTransactions'] if features['totalTransactions'] != 0 else 1)
 
-async def process(eth_request: EthereumRequest):
+ 
+    feature_order = [
+        'avgMinBetweenSentTnx', 'avgMinBetweenReceivedTnx', 'timeDiffFirstLastMins', 'sentTnx',
+        'receivedTnx', 'avgValSent', 'avgValReceived', 'totalTransactions', 'totalEtherSent',
+        'totalEtherReceived', 'totalEtherBalance', 'ratioRecSent', 'ratioSentTotal', 'ratioRecTotal'
+    ]
+
+    # Arrange features in the required order
+    for feature in feature_order:
+        if feature not in features:
+            raise HTTPException(status_code=400, detail=f"Missing feature: {feature}")
+    
+    feature_values = np.array([float(features[col]) for col in feature_order]).reshape(1, -1)
+    
+    # Perform prediction
+    prediction = model.predict(feature_values)
+    prediction_result = prediction[0] 
+    return {"prediction": prediction_result}
+
+async def process(eth_address):
     try:
-        result = await predict(eth_request.address)
+        result = await predict(eth_address)
         return result
     except HTTPException as e:
         raise e
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Unexpected error in processing: {str(e)}")
+
+
+
+
