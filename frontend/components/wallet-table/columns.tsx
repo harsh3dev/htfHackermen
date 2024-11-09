@@ -1,8 +1,21 @@
 "use client";
 
 import { Badge } from "@/components/ui/badge";
-import { Shield, Wallet } from "lucide-react";
-import { type ScamWallet } from "@/lib/data/mock-wallets";
+import { Wallet } from "lucide-react";
+
+type ScamWallet = {
+  address: string;
+  timeDiffFirstLastMins: number;
+  avgValReceived: number;
+  avgMinBetweenReceivedTnx: number;
+  totalEtherSent: number;
+  totalEtherReceived: number;
+  receivedTnx: number;
+  sentTnx: number;
+  avgMinBetweenSentTnx: number;
+  totalEtherBalance: number;
+  avgValSent: number;
+};
 
 export const columns = [
   {
@@ -17,56 +30,59 @@ export const columns = [
     ),
   },
   {
-    header: "Balance",
+    header: "Balance (ETH)",
     cell: (wallet: ScamWallet) => (
-      <span className="font-bold text-blue-400">{wallet.balance}</span>
+      <span className="font-bold text-blue-400">{wallet.totalEtherBalance.toFixed(4)}</span>
     ),
   },
   {
-    header: "Exchange",
+    header: "Avg. Received (ETH)",
     cell: (wallet: ScamWallet) => (
-      <Badge variant="outline" className="border-violet-600 text-violet-400">
-        {wallet.exchange}
+      <span>{wallet.avgValReceived.toFixed(4)}</span>
+    ),
+  },
+  {
+    header: "Avg. Sent (ETH)",
+    cell: (wallet: ScamWallet) => (
+      <span>{wallet.avgValSent.toFixed(4)}</span>
+    ),
+  },
+  {
+    header: "Total Sent (ETH)",
+    cell: (wallet: ScamWallet) => (
+      <span className="text-gray-500">{wallet.totalEtherSent.toFixed(4)}</span>
+    ),
+  },
+  {
+    header: "Total Received (ETH)",
+    cell: (wallet: ScamWallet) => (
+      <span className="text-gray-500">{wallet.totalEtherReceived.toFixed(4)}</span>
+    ),
+  },
+  {
+    header: "Transactions",
+    cell: (wallet: ScamWallet) => (
+      <Badge variant="outline" className="border-green-600 text-green-400">
+        {wallet.receivedTnx} received / {wallet.sentTnx} sent
       </Badge>
     ),
   },
   {
-    header: "Trust Score",
+    header: "Avg. Time Between Sends (mins)",
     cell: (wallet: ScamWallet) => (
-      <div className="flex items-center gap-2">
-        <Shield
-          className={`w-4 h-4 ${
-            wallet.trustScore < 10
-              ? "text-red-500"
-              : wallet.trustScore < 20
-              ? "text-yellow-500"
-              : "text-green-500"
-          }`}
-        />
-        <span
-          className={`${
-            wallet.trustScore < 10
-              ? "text-red-400"
-              : wallet.trustScore < 20
-              ? "text-yellow-400"
-              : "text-green-400"
-          }`}
-        >
-          {wallet.trustScore}%
-        </span>
-      </div>
+      <span className="text-gray-400">{wallet.avgMinBetweenSentTnx.toFixed(2)}</span>
     ),
   },
   {
-    header: "Last Active",
+    header: "Avg. Time Between Receives (mins)",
     cell: (wallet: ScamWallet) => (
-      <span className="text-gray-400">{wallet.lastActive}</span>
+      <span className="text-gray-400">{wallet.avgMinBetweenReceivedTnx.toFixed(2)}</span>
     ),
   },
   {
-    header: "Reports",
+    header: "Activity Duration (mins)",
     cell: (wallet: ScamWallet) => (
-      <Badge variant="destructive">{wallet.reportCount} reports</Badge>
+      <span className="text-gray-400">{wallet.timeDiffFirstLastMins.toFixed(2)}</span>
     ),
   },
 ];
