@@ -1,0 +1,35 @@
+{
+    "manifest_version": 3,
+    "name": "Ether Address Risk Checker",
+    "description": "Check the risk score of an Ethereum address.",
+    "version": "1.0",
+    "permissions": [
+        "tabs",
+        "scripting",
+        "webNavigation",
+        "activeTab"
+    ],
+    "background": {
+      "service_worker": "background.js"
+    },
+    "content_scripts": [
+      {
+        "matches": ["<all_urls>"], 
+        "js": ["content.js"]
+      }
+    ],
+    "action": {
+      "default_popup": "popup.html",
+      "default_icon": {
+        "16": "logo.png",
+        "48": "logo.png",
+        "128": "logo.png"
+      }
+    },
+    "host_permissions": [
+        "https://polymarket.com/*",
+        "*://*.polymarket.com/*",  
+        "<all_urls>" 
+    ]
+  }
+  
