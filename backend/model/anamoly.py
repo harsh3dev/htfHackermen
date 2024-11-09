@@ -1,21 +1,41 @@
 from fastapi import FastAPI, HTTPException
 from pydantic import BaseModel
-import joblib
+import pickle
 import os
 from dotenv import load_dotenv
 import httpx
 import numpy as np
-from model.feature_engineer import FeatureEngineer
+from sklearn.base import BaseEstimator, TransformerMixin
 
 load_dotenv()
 
 app = FastAPI()
+model_path = 'address.pickle'
 
-model_path = 'model/address.pickle'
+# Step 1: Custom transformer for renaming columns and feature creation
+class FeatureEngineer(BaseEstimator, TransformerMixin):
+    def fit(self, X, y=None):
+        return self
+
+    def transform(self, X):
+        X = X.drop(columns=['address'], errors='ignore')
+        X['totalTransactions'] = X['sentTransactions'] + X['receivedTransactions']
+        X['ratioRecSent'] = X['receivedTransactions'] / X['sentTransactions'].replace(0, 1)
+        X['ratioSentTotal'] = X['sentTransactions'] / X['totalTransactions'].replace(0, 1)
+        X['ratioRecTotal'] = X['receivedTransactions'] / X['totalTransactions'].replace(0, 1)
+        expected_columns = [
+            'avgTimeBetweenSentTnx', 'avgTimeBetweenRecTnx', 'lifetime',
+            'sentTransactions', 'receivedTransactions', 'avgValSent',
+            'avgValReceived', 'totalTransactions', 'totalEtherSent',
+            'totalEtherReceived', 'totalEtherBalance', 'ratioRecSent',
+            'ratioSentTotal', 'ratioRecTotal'
+        ]
+        X = X[expected_columns]
+        return X
 
 if os.path.exists(model_path):
     with open(model_path, 'rb') as file:
-        model = joblib.load(file)
+        model = pickle.load(file)
 else:
     raise HTTPException(status_code=500, detail="Model file not found")
 
