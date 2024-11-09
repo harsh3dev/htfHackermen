@@ -60,7 +60,7 @@ The model processes wallet and transaction data to calculate a **safety score** 
    cd CryptoSecure
    ```
 2. **Setting up Backend**
-   - Dependency installation
+   - **Dependency installation**
    ```bash
    pip install -r backend/requirements.txt
    ```
@@ -69,15 +69,15 @@ The model processes wallet and transaction data to calculate a **safety score** 
    uvicorn backend.main:app --reload
    ```
 3. **Setting up Frontend**
-   - Navigation
+   - **Navigation**
      ```bash
      cd frontend
      ```
-   - Install dependency
+   - **Install dependency**
      ```bash
      npm install
      ```
-   - Start server
+   - **Start server**
      ```bash
      npm start
      ```
