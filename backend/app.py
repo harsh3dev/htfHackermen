@@ -4,29 +4,31 @@ import motor.motor_asyncio
 import httpx
 from dotenv import load_dotenv
 import os
-
+from model.anamoly import process 
 
 load_dotenv()
-
 
 app = FastAPI()
 
 class EthereumRequest(BaseModel):
     address: str
 
-# Setup MongoDB client using Motor (async MongoDB driver)
-client = motor.motor_asyncio.AsyncIOMotorClient(os.getenv('MONGO_URI'))
-db = client['blacklistDB']
-blacklist_collection = db['blacklists']
-kyc_collection = db['kycs'] 
+# MongoDB URI
+mongo_uri = os.getenv('MONGO_URI')
+
+# Initialize MongoDB client
+client = motor.motor_asyncio.AsyncIOMotorClient(mongo_uri)
+db = client["blacklistDB"]
+blacklist_collection = db["blacklists"]
+kyc_collection = db["kycs"]
 
 # Function to check if the address is in the blacklist collection
 async def Scammer(eth_address: str) -> int:
     try:
         existing_entry = await blacklist_collection.find_one({"address": eth_address})
         if existing_entry:
-            return 1  # Address found in blacklist
-        return 0  # Address not found
+            return 1  # Address is in the blacklist
+        return 0  # Address is not in the blacklist
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error checking blacklist: {str(e)}")
 
@@ -39,7 +41,6 @@ async def getTransactions(eth_address: str) -> list:
         
         if response.status_code == 200:
             response_data = await response.json()
-            print(f"response_data: {response_data}")
             if 'result' in response_data:
                 return response_data['result']
             else:
@@ -60,13 +61,9 @@ async def KYCverified(eth_address: str) -> int:
         transactions = await getTransactions(eth_address)
 
         if not transactions:
-            print("No transactions found.")
-            return 0
-        
-        print(f"transactions: {transactions}")
+            return 0  # No transactions found, return 0
         
         for tx in transactions:
-            print(f"entered in tx")
             from_address = tx['from']
             to_address = tx['to']
             
@@ -86,8 +83,13 @@ async def KYCverified(eth_address: str) -> int:
 async def process_eth_address(data: EthereumRequest):
     try:
         eth_address = data.address
-        score = await Scammer(eth_address)  # Check if the address is blacklisted
-        score += await KYCverified(eth_address)  # Check if the address is verified in KYC
+        score = 0
+        
+        # Calculate the score based on different checks
+        score += await Scammer(eth_address)  # Check if the address is a scammer
+        score += await process(eth_address)
+       
+        
         return {'score': score}
     except HTTPException as e:
         raise e  # Reraise HTTPException if it is caught in the route handler
