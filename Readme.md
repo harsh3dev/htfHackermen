@@ -54,7 +54,30 @@ The model processes wallet and transaction data to calculate a **safety score** 
 
 ### Installation Steps
 
-1. **Clone the repository**:
+1. **Clone repository**:
    ```bash
    git clone https://github.com/yourusername/CryptoSecure.git
    cd CryptoSecure
+   ```
+2. **Setting up Backend**
+   - Dependency installation
+   ```bash
+   pip install -r backend/requirements.txt
+   ```
+   - Start Server
+   ```bash
+   uvicorn backend.main:app --reload
+   ```
+3. **Setting up Frontend**
+   - Navigation
+     ```bash
+     cd frontend
+     ```
+   - Install dependency
+     ```bash
+     npm install
+     ```
+   - Start server
+     ```bash
+     npm start
+     ```
