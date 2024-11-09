@@ -5,6 +5,7 @@ import time
 import requests
 import fetchBlacklist
 
+
 class RateLimiter:
     def __init__(self, max_calls_per_second):
         self.max_calls_per_second = max_calls_per_second
@@ -31,8 +32,13 @@ class RateLimiter:
         self.wait_if_needed()  # Check if we need to wait
         return func(*args, **kwargs)  # Call the actual function
 
+def get_api_key():
+   load_dotenv()
+   API_KEY = os.getenv('API_KEY')
+   return API_KEY
+
 def get_eth_wallet_transactions(input_eth_wallet,txn_accs,end):
-  api_key = API_KEY
+  api_key = get_api_key()
   url='https://api.etherscan.io/v2/api?chainid=1&module=account&action=txlist'
   url+='&address='+input_eth_wallet
   url+='&startblock=0'
@@ -83,8 +89,6 @@ def helper1(eth_wallet):
   return txn_accs
 
 def txnGraphScore(input_eth_wallet):
-  load_dotenv()
-  API_KEY = os.getenv('API_KEY')
   blacklist = fetchBlacklist.fetchBlacklist()
 
   rate_limiter = RateLimiter(max_calls_per_second=5)
@@ -129,12 +133,11 @@ def txnGraphScore(input_eth_wallet):
         overall_total_txn += second_lvl_accs[acc]
       else:
         overall_blacklist_txn += (second_lvl_scores[acc] * second_lvl_accs[acc])
-        overall_total_txn += (second_lvl_scores[acc] * second_lvl_accs[acc])
+        overall_total_txn += second_lvl_accs[acc]
 
   score=0
   # Output the final score
   if overall_total_txn != 0:
     score = overall_blacklist_txn / overall_total_txn
 
-  return score
-
+  return score ** (1 / 2.5)
