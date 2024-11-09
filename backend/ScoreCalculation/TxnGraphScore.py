@@ -3,7 +3,28 @@ from dotenv import load_dotenv
 import pandas as pd
 import time
 import requests
-import fetchBlacklist
+import pymongo
+
+def fetchBlacklist():
+    load_dotenv()
+    mongo_uri = os.getenv('MONGO_URI')
+
+    db_name = "blacklistDB"
+    collection_name = "blacklists"
+
+    client = pymongo.MongoClient(mongo_uri)
+
+    db = client[db_name]
+    collection = db[collection_name]
+
+    documents = collection.find()
+
+    document_list = list(documents)
+
+    df = pd.DataFrame(document_list)
+    df=df.drop(columns=['_id','__v'])
+
+    return df
 
 
 class RateLimiter:
@@ -34,7 +55,7 @@ class RateLimiter:
 
 def get_api_key():
    load_dotenv()
-   API_KEY = os.getenv('API_KEY')
+   API_KEY = os.getenv('ETHERSCAN_API_KEY')
    return API_KEY
 
 def get_eth_wallet_transactions(input_eth_wallet,txn_accs,end):
@@ -73,8 +94,11 @@ def get_eth_wallet_transactions(input_eth_wallet,txn_accs,end):
         end = transactions[-1]['blockNumber']
         return txn_accs, end
     else:
+        error_message = data.get('message', 'Unknown error occurred.')
+        print("Error:", error_message)
         return None, 99999999
   except requests.exceptions.RequestException as e:
+    print(e)
     return None, 99999999
 
 def helper1(eth_wallet):
@@ -89,7 +113,7 @@ def helper1(eth_wallet):
   return txn_accs
 
 def txnGraphScore(input_eth_wallet):
-  blacklist = fetchBlacklist.fetchBlacklist()
+  blacklist = fetchBlacklist()
 
   rate_limiter = RateLimiter(max_calls_per_second=5)
   input_eth_wallet = input_eth_wallet.lower()

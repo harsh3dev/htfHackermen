@@ -52,7 +52,7 @@ def get_ethereum_address_age(address, api_key):
         print("No transactions found or error in API call.")
         return 0
 
-def age_txn_score(address):
+def ageTxnScore(address):
     load_dotenv() 
-    api_key = os.getenv('API_KEY')
+    api_key = os.getenv('ETHERSCAN_API_KEY')
     return get_ethereum_address_age(address, api_key)
