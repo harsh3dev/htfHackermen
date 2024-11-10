@@ -19,7 +19,7 @@ export default function ScoreChecker() {
           address: address, 
         });
         console.log("response",res)
-        setTrustScore(res.data);
+        setTrustScore(parseFloat(res.data.score.toFixed(2)));
         setIsLoading(false);
         setShowResult(true);
     } catch (error) {

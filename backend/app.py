@@ -8,10 +8,20 @@ from model.anamoly import process
 from ScoreCalculation.TxnGraphScore import txnGraphScore
 from ScoreCalculation.accountAge import ageTxnScore
 import asyncio
+from fastapi.middleware.cors import CORSMiddleware
+
 
 load_dotenv()
 
 app = FastAPI()
+
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["*"],  # Replace "*" with your frontend URL in production
+    allow_credentials=True,
+    allow_methods=["*"],  # Adjust methods as needed
+    allow_headers=["*"],
+)
 
 class EthereumRequest(BaseModel):
     address: str
