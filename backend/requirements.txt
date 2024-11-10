@@ -18,6 +18,7 @@ flatbuffers
 gast
 google-pasta
 grpcio
+gunicorn
 h11
 h5py
 httpcore
