@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import axios from 'axios'
 
 export default function ScoreChecker() {
   const [address, setAddress] = useState('')
@@ -11,17 +12,22 @@ export default function ScoreChecker() {
   const [showResult, setShowResult] = useState(false)
   const [trustScore, setTrustScore] = useState(0)
 
-  const checkTrustScore = () => {
-    setIsLoading(true)
-    // Simulating API call with setTimeout
-    setTimeout(() => {
-      // Generate a random trust score between 0 and 100
-      const score = Math.floor(Math.random() * 101)
-      setTrustScore(score)
-      setIsLoading(false)
-      setShowResult(true)
-    }, 2000) // 2 seconds delay to simulate loading
-  }
+  const checkTrustScore = async () => {
+    try {
+        setIsLoading(true);
+        const res = await axios.post("http://127.0.0.1:8000/process_eth_address", {
+          address: address, 
+        });
+        console.log("response",res)
+        setTrustScore(res.data);
+        setIsLoading(false);
+        setShowResult(true);
+    } catch (error) {
+      console.error("Error fetching trust score:", error);
+      setIsLoading(false);
+    }
+  };
+  
 
   const getScoreColor = (score: number) => {
     if (score <= 50) return 'text-red-400'
