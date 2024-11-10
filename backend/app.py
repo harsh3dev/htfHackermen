@@ -7,6 +7,7 @@ import os
 from model.anamoly import process
 from ScoreCalculation.TxnGraphScore import txnGraphScore
 from ScoreCalculation.accountAge import ageTxnScore
+import asyncio
 
 load_dotenv()
 
@@ -75,31 +76,46 @@ async def KYCverified(eth_address: str) -> int:
         raise HTTPException(status_code=500, detail=f"Error checking KYC: {str(e)}")
 
 @app.post("/process_eth_address")
+
 async def process_eth_address(data: EthereumRequest):
     try:
         eth_address = data.address
         score = 0
         
+        # Check for scammer status first
         score += await Scammer(eth_address)  
         if score == 1:
-            return {'score':0}
-        graph_score = txnGraphScore(eth_address)
-        graph_score *= 100
-        kyc_score = await KYCverified(eth_address)
-        kyc_score = 1-kyc_score
-        kyc_score*=100
-        val_store = await process(eth_address)
-        ml_score = val_store['prediction'][0]
-        ml_score = 1-ml_score
-        print(ml_score)
-        ml_score*=100
-        age_txn_score = ageTxnScore(eth_address)
-        age_txn_score = 1 - age_txn_score
-        age_txn_score*=100
+            return {'score': 0}
 
-        final_score = (graph_score+kyc_score+ml_score+age_txn_score)/4
+        # Run graph score, KYC verification, process, and age transaction score in parallel
+        tasks = [
+            asyncio.to_thread(txnGraphScore, eth_address),  # Wrap synchronous function if it's not async
+            KYCverified(eth_address),    # Make sure KYCverified is async
+            process(eth_address),        # Make sure process is async
+            asyncio.to_thread(ageTxnScore, eth_address)     # Wrap synchronous function if it's not async
+        ]
+
+        # Await all tasks in parallel
+        graph_score, kyc_score, val_store, age_txn_score = await asyncio.gather(*tasks)
         
-        return {'score': 100-final_score}
+        # Process the results
+        graph_score *= 100
+        kyc_score = 1 - kyc_score
+        kyc_score *= 100
+        
+        ml_score = val_store['prediction'][0]
+        ml_score = 1 - ml_score
+        print(ml_score)
+        ml_score *= 100
+        
+        age_txn_score = 1 - age_txn_score
+        age_txn_score *= 100
+
+        # Calculate the final score
+        final_score = (graph_score + kyc_score + ml_score + age_txn_score) / 4
+        
+        return {'score': 100 - final_score}
+
     except HTTPException as e:
         raise e
     except Exception as e:
