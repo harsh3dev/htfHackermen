@@ -19,11 +19,15 @@ COPY . /app/
 # Verify the backend directory exists in the container
 RUN ls -l /app/backend  # This will ensure backend folder exists
 
+# Set the working directory to /app/backend
+WORKDIR /app/backend
+
 # Install the dependencies from the backend's requirements.txt
-RUN cd backend && python3 -m pip install -r requirements.txt
+RUN python3 -m pip install -r requirements.txt
 
 # Expose the necessary port (adjust if needed)
 EXPOSE 8080
-CMD ["cd","./backend"]
-# Add additional commands if necessary, such as running the application
-CMD ["python3", "-m", "uvicorn", "app:app", "--reload", "--no-access-log"]
+
+# Command to start the application
+CMD ["python3", "-m", "uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--no-access-log"]
+
